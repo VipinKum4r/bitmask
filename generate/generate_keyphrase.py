@@ -1,4 +1,5 @@
-import subprocess
+import os
+import base64
 import hashlib
 import sys
 import argparse
@@ -15,18 +16,13 @@ def generate_keyphrase(name, email=None):
         # Create a fingerprint filename
         fingerprint_filename = f"{key_filename}.sha256"
 
-        # Generate a random 32-byte keyphrase for openssl KDF (Key Derivation Function)
-        result = subprocess.run(
-            ["openssl", "rand", "-base64", "32"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            text=True
-        )
+        # Generate a random 32-byte keyphrase (base64-encoded) — no openssl needed
+        random_bytes = os.urandom(32)
+        keyphrase = base64.b64encode(random_bytes).decode("utf-8")
 
-        # Write the keyphrase to the file
-        with open(key_filename, "w") as key_file:
-            key_file.write(result.stdout.strip())
+        # Write the keyphrase without trailing newline (matches openssl rand -base64 32 stripped)
+        with open(key_filename, "w", newline="") as key_file:
+            key_file.write(keyphrase)
 
         # Generate a SHA-256 fingerprint of the keyphrase and save it to the fingerprint file
         with open(key_filename, "rb") as key_file:
@@ -38,9 +34,6 @@ def generate_keyphrase(name, email=None):
         print(f"Keyphrase generated: {key_filename}")
         print(f"SHA-256 fingerprint saved: {fingerprint_filename}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error: OpenSSL command failed with error: {e.stderr.strip()}")
-        sys.exit(1)
     except Exception as ex:
         print(f"An unexpected error occurred: {ex}")
         sys.exit(1)

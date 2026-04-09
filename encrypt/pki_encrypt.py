@@ -1,7 +1,10 @@
-import subprocess
 import os
 import sys
 import argparse
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
 
 def pki_encrypt(filename, pubkey, output_path=None):
     try:
@@ -17,11 +20,18 @@ def pki_encrypt(filename, pubkey, output_path=None):
         output_file = os.path.join(
             output_path if output_path else os.getcwd(), os.path.basename(filename) + ".apg")
 
-        # Encrypt the file using provided public key
-        subprocess.run(
-            ["openssl", "pkeyutl", "-encrypt",
-            "-inkey", pubkey, "-pubin", "-in", filename, "-out", output_file],
-            check=True)
+        # Load public key (PEM format, compatible with openssl rsa -pubout)
+        with open(pubkey, "rb") as f:
+            public_key = serialization.load_pem_public_key(f.read(), backend=default_backend())
+
+        with open(filename, "rb") as f:
+            plaintext = f.read()
+
+        # RSA PKCS#1 v1.5 encryption — matches openssl pkeyutl -encrypt default
+        ciphertext = public_key.encrypt(plaintext, padding.PKCS1v15())
+
+        with open(output_file, "wb") as f:
+            f.write(ciphertext)
 
         print(f"File encrypted successfully: {output_file}")
     

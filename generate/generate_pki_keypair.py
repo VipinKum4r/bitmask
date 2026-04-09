@@ -1,30 +1,52 @@
-import subprocess
-import argparse
 import sys
+import argparse
+import getpass
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 def generate_keypair(private_key_base, public_key_base):
     private_key_file = f"{private_key_base}.pem"
     public_key_file = f"{public_key_base}.pem"
     
     try:
-        # Generate the private key with AES-256 cipher
-        subprocess.run(
-            ["openssl", "genrsa", "-aes256", "-out", private_key_file, "2048"],
-            check=True,
+        passphrase = getpass.getpass("Enter passphrase for private key: ")
+        confirm    = getpass.getpass("Confirm passphrase: ")
+        if passphrase != confirm:
+            print("Error: Passphrases do not match.", file=sys.stderr)
+            sys.exit(1)
+        if not passphrase:
+            print("Error: Passphrase cannot be empty.", file=sys.stderr)
+            sys.exit(1)
+
+        # Generate a 2048-bit RSA private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
         )
+
+        # Serialize private key — TraditionalOpenSSL PEM + AES-256 encryption
+        # (compatible with OpenSSL genrsa -aes256)
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.BestAvailableEncryption(passphrase.encode())
+        )
+        with open(private_key_file, "wb") as f:
+            f.write(private_pem)
         print(f"Private key generated: {private_key_file}")
-        
-        # Generate the public key from the private key
-        subprocess.run(
-            ["openssl", "rsa", "-in", private_key_file,
-             "-pubout", "-out", public_key_file],
-            check=True,
+
+        # Serialize public key (compatible with OpenSSL rsa -pubout)
+        public_pem = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
+        with open(public_key_file, "wb") as f:
+            f.write(public_pem)
         print(f"Public key generated: {public_key_file}")
     
-    except subprocess.CalledProcessError as e:
-        print(f"Error: OpenSSL command failed: {e}", file=sys.stderr)
-        sys.exit(1)
     except Exception as ex:
         print(f"An unexpected error occurred: {ex}")
         sys.exit(1)

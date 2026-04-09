@@ -1,7 +1,11 @@
-import subprocess
 import os
 import sys
 import argparse
+import getpass
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
 
 def pki_decrypt(encrypted_file, privkey, output_path=None):
     try:
@@ -22,15 +26,29 @@ def pki_decrypt(encrypted_file, privkey, output_path=None):
         output_file = os.path.join(
             output_path if output_path else os.getcwd(), os.path.basename(output_file))
 
-        # Decrypt the file using provided private key
-        subprocess.run(
-            ["openssl", "pkeyutl", "-decrypt",
-            "-inkey", privkey, "-in", encrypted_file, "-out", output_file],
-            check=True)
-        
+        # Prompt for private key passphrase (mirrors openssl interactive behaviour)
+        passphrase = getpass.getpass(f"Enter passphrase for private key '{privkey}': ")
+
+        # Load the encrypted private key
+        with open(privkey, "rb") as f:
+            private_key = serialization.load_pem_private_key(
+                f.read(),
+                password=passphrase.encode(),
+                backend=default_backend()
+            )
+
+        with open(encrypted_file, "rb") as f:
+            ciphertext = f.read()
+
+        # RSA PKCS#1 v1.5 decryption — matches openssl pkeyutl -decrypt default
+        plaintext = private_key.decrypt(ciphertext, padding.PKCS1v15())
+
+        with open(output_file, "wb") as f:
+            f.write(plaintext)
+
         print(f"File decrypted successfully: {output_file}")
-        
-    except subprocess.CalledProcessError as e:
+
+    except ValueError as e:
         print(f"Error: OpenSSL command failed: {e}")
         sys.exit(1)
     except Exception as ex:
