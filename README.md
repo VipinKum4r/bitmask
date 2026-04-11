@@ -9,7 +9,7 @@ For asymmetric encryption, I use a 2048-bit RSA keypair with the private key fur
 > [!WARNING]
 > Don't set a predictable or short passphrase. Your encrypted data may be compromised in event of a key leak.
 
-Symmetric encryption uses random base64 encoded keyphrase. Note that this is not the actual key used for symmetric encryption but a password or passphrase which is used by openssl's PBKDF2 KDF (Key Derivation Function) to derive a symmetric key. Further, the encryption is carried out using the AES-256 algorithm and salt to eliminate determinism in the encrypted output. Salt ensures randomness but it is stored in the encrypted file.
+Symmetric encryption uses random base64 encoded keyphrase. Note that this is not the actual key used for symmetric encryption but a password or passphrase which is used by PBKDF2 KDF (Key Derivation Function) to derive a symmetric key. Further, the encryption is carried out using the AES-256 algorithm and salt to eliminate determinism in the encrypted output. Salt ensures randomness but it is stored in the encrypted file.
 ---
 
 ## Cross-platform support
@@ -46,11 +46,6 @@ You can use these scripts for secure storage by encrypting the files on your com
 It's a good practice to destroy the raw keyphrase file once it's usage is over and it is safely encrypted since it poses a significantly higher risk of your files being exposed being the only key required to both encrypt and decrypt your data.  
 
 ## Contribution
-With openssl installed, these scripts work out of box on Linux, expected 
-to work out of box on BSD and Mac but remains to be tested. Windows is 
-now supported out of box without requiring openssl. Install the single 
-Python dependency with:
-
-    pip install -r requirements.txt
+With the migration to the `cryptography` Python library, these scripts work out of box on Linux, macOS, BSD and Windows without requiring openssl to be installed. Install the single dependency with `pip install -r requirements.txt`.
 
 Feel free to test on other platforms and create issues/pull requests accordingly.

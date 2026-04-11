@@ -10,10 +10,10 @@ def pki_encrypt(filename, pubkey, output_path=None):
     try:
         # Ensure the input file and public key exist
         if not os.path.isfile(filename):
-            print(f"Error: File '{filename}' does not exist.")
+            print(f"Error: File '{filename}' does not exist.", file=sys.stderr)
             sys.exit(1)
         if not os.path.isfile(pubkey):
-            print(f"Error: Public key '{pubkey}' does not exist.")
+            print(f"Error: Public key '{pubkey}' does not exist.", file=sys.stderr)
             sys.exit(1)
 
         # Determine the output file name
@@ -34,12 +34,12 @@ def pki_encrypt(filename, pubkey, output_path=None):
             f.write(ciphertext)
 
         print(f"File encrypted successfully: {output_file}")
-    
-    except subprocess.CalledProcessError as e:
-        print(f"Error: OpenSSL command failed: {e}")
+
+    except ValueError as e:
+        print(f"Error: Decryption failed: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        print(f"An unexpected error occurred: {ex}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -50,4 +50,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     pki_encrypt(args.filename, args.public_key, args.output)
-

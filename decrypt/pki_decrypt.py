@@ -11,13 +11,13 @@ def pki_decrypt(encrypted_file, privkey, output_path=None):
     try:
         # Ensure the encrypted file and private key exist
         if not os.path.isfile(encrypted_file):
-            print(f"Error: File '{encrypted_file}' does not exist.")
+            print(f"Error: File '{encrypted_file}' does not exist.", file=sys.stderr)
             sys.exit(1)
         if not os.path.isfile(privkey):
-            print(f"Error: Private key '{privkey}' does not exist.")
+            print(f"Error: Private key '{privkey}' does not exist.", file=sys.stderr)
             sys.exit(1)
 
-        # Remove .enc extension if it exists, otherwise maintain the original filename
+        # Remove .apg extension if it exists, otherwise maintain the original filename
         if encrypted_file.endswith(".apg"):
             output_file = encrypted_file[:-4]
         else:
@@ -49,10 +49,10 @@ def pki_decrypt(encrypted_file, privkey, output_path=None):
         print(f"File decrypted successfully: {output_file}")
 
     except ValueError as e:
-        print(f"Error: OpenSSL command failed: {e}")
+        print(f"Error: Decryption failed: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        print(f"An unexpected error occurred: {ex}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -63,4 +63,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     pki_decrypt(args.filename, args.private_key, args.output)
-

@@ -7,21 +7,21 @@ from cryptography.hazmat.primitives import hashes, padding as sym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-_PBKDF2_ITERATIONS = 10000
-_OPENSSL_MAGIC = b"Salted__"
-
+_PBKDF2_ITERATIONS = 10000  # PBKDF2 iteration count — matches OpenSSL default for cross-compatibility
+_OPENSSL_MAGIC = b"Salted__"  # 8-byte header in OpenSSL-compatible encrypted files, followed by 8-byte salt
+_KEY_IV_LENGTH = 48  # 32 bytes for AES-256 key + 16 bytes for AES CBC IV
+_AES_BLOCK_BITS = 128  # AES block size in bits, required for PKCS7 padding
 
 def _read_passphrase(keyphrase_file):
     """Read passphrase from file, stripping trailing whitespace (mirrors openssl file: behaviour)."""
     with open(keyphrase_file, "rb") as f:
         return f.read().rstrip()
 
-
 def _derive_key_iv(passphrase: bytes, salt: bytes):
-    """Derive a 256-bit key + 128-bit IV via PBKDF2-HMAC-SHA256 (OpenSSL-compatible)."""
+    """Derive a 256-bit key + 128-bit IV via PBKDF2-HMAC-SHA256 (maintaining compatibility with the legacy OpenSSL file format)."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
-        length=48,
+        length=_KEY_IV_LENGTH,
         salt=salt,
         iterations=_PBKDF2_ITERATIONS,
         backend=default_backend()
@@ -29,17 +29,16 @@ def _derive_key_iv(passphrase: bytes, salt: bytes):
     derived = kdf.derive(passphrase)
     return derived[:32], derived[32:48]
 
-
 def decrypt_file(encrypted_filename, keyphrase_file, output_path=None):
     try:
         # Check if the encrypted file exists
         if not os.path.exists(encrypted_filename):
-            print(f"Error: Encrypted file '{encrypted_filename}' not found.")
+            print(f"Error: Encrypted file '{encrypted_filename}' not found.", file=sys.stderr)
             sys.exit(1)
 
         # Check if the keyphrase file exists
         if not os.path.exists(keyphrase_file):
-            print(f"Error: Key file '{keyphrase_file}' not found.")
+            print(f"Error: Key file '{keyphrase_file}' not found.", file=sys.stderr)
             sys.exit(1)
 
         # Remove .enc extension if it exists, otherwise maintain the original filename
@@ -56,11 +55,11 @@ def decrypt_file(encrypted_filename, keyphrase_file, output_path=None):
             data = f.read()
 
         if not data.startswith(_OPENSSL_MAGIC):
-            print("Error: File does not appear to be an OpenSSL-compatible encrypted file "
+            print("Error: File does not appear to be a valid legacy encrypted file "
                   "(missing 'Salted__' header).", file=sys.stderr)
             sys.exit(1)
 
-        salt       = data[8:16]
+        salt = data[8:16]
         ciphertext = data[16:]
 
         passphrase = _read_passphrase(keyphrase_file)
@@ -72,7 +71,7 @@ def decrypt_file(encrypted_filename, keyphrase_file, output_path=None):
         padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
 
         # Remove PKCS7 padding
-        unpadder = sym_padding.PKCS7(128).unpadder()
+        unpadder = sym_padding.PKCS7(_AES_BLOCK_BITS).unpadder()
         try:
             plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
         except ValueError:
@@ -85,7 +84,7 @@ def decrypt_file(encrypted_filename, keyphrase_file, output_path=None):
         print(f"File decrypted successfully: {output_filename}")
 
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        print(f"An unexpected error occurred: {ex}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -94,6 +93,5 @@ if __name__ == "__main__":
     parser.add_argument("keyphrase_file", help="Keyphrase file used for symmetric decryption")
     parser.add_argument("-o", "--output", help="Optional output directory to save the decrypted file", default=None)
     args = parser.parse_args()
-    
-    decrypt_file(args.filename, args.keyphrase_file, args.output)
 
+    decrypt_file(args.filename, args.keyphrase_file, args.output)

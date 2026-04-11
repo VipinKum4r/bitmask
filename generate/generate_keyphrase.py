@@ -24,18 +24,17 @@ def generate_keyphrase(name, email=None):
         with open(key_filename, "w", newline="") as key_file:
             key_file.write(keyphrase)
 
-        # Generate a SHA-256 fingerprint of the keyphrase and save it to the fingerprint file
+        # Generate a SHA-256 fingerprint of the keyphrase file and save it
         with open(key_filename, "rb") as key_file:
-            key_data = key_file.read()
-            sha256_fingerprint = hashlib.sha256(key_data).hexdigest()
-            with open(fingerprint_filename, "w") as fingerprint_file:
-                fingerprint_file.write(sha256_fingerprint)
+            sha256_fingerprint = hashlib.sha256(key_file.read()).hexdigest()
+        with open(fingerprint_filename, "w") as fingerprint_file:
+            fingerprint_file.write(sha256_fingerprint)
 
         print(f"Keyphrase generated: {key_filename}")
         print(f"SHA-256 fingerprint saved: {fingerprint_filename}")
 
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        print(f"An unexpected error occurred: {ex}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -43,6 +42,5 @@ if __name__ == "__main__":
     parser.add_argument("name", help="Recipient name (mandatory)")
     parser.add_argument("-e", "--email", help="Recipient email (optional)", default=None)
     args = parser.parse_args()
-    
-    generate_keyphrase(args.name, args.email)
 
+    generate_keyphrase(args.name, args.email)
