@@ -55,7 +55,7 @@ def generate_keypair(private_key_base, public_key_base):
         sys.exit(1)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate a PKI keypair (no openssl required).")
+    parser = argparse.ArgumentParser(description="Generate a PKI keypair.")
     parser.add_argument(
         "-s",
         "--priv",

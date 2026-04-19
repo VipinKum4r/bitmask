@@ -46,6 +46,9 @@ You can use these scripts for secure storage by encrypting the files on your com
 It's a good practice to destroy the raw keyphrase file once it's usage is over and it is safely encrypted since it poses a significantly higher risk of your files being exposed being the only key required to both encrypt and decrypt your data.  
 
 ## Contribution
-With the migration to the `cryptography` Python library, these scripts work out of box on Linux, macOS, BSD and Windows without requiring openssl to be installed. Install the single dependency with `pip install -r requirements.txt`.
+These scripts are designed to work out of the box on Linux, macOS, BSD, and Windows.
+Install dependencies using:
 
-Feel free to test on other platforms and create issues/pull requests accordingly.
+pip install -r requirements.txt
+
+Feel free to test on other platforms and open issues or pull requests for any problems or improvements.
